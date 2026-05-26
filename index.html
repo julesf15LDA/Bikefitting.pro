@@ -4,101 +4,118 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<title>AeroBike AI - Bike Fit Aérodynamique Intelligent</title>
+<title>AeroBike AI Ultimate</title>
 
 <!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- TensorFlow -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- MediaPipe Pose -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+<!-- Three.js -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<!-- TensorFlow -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<!-- MediaPipe -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
 
 <style>
-    body{
-        background:#050816;
-        color:white;
-        overflow-x:hidden;
-        font-family:Arial, Helvetica, sans-serif;
-    }
 
-    .glass{
-        background:rgba(255,255,255,0.05);
-        backdrop-filter:blur(12px);
-        border:1px solid rgba(255,255,255,0.08);
-    }
+body{
+    background:#030712;
+    color:white;
+    overflow-x:hidden;
+    font-family:Arial;
+}
 
-    canvas{
-        border-radius:16px;
-    }
+.glass{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.08);
+    backdrop-filter:blur(20px);
+}
 
-    .metric{
-        transition:0.3s;
-    }
+.metricCard{
+    transition:0.3s;
+}
 
-    .metric:hover{
-        transform:translateY(-4px);
-    }
+.metricCard:hover{
+    transform:translateY(-4px);
+}
 
-    .good{
-        color:#00ff99;
-    }
+video,canvas{
+    border-radius:20px;
+}
 
-    .bad{
-        color:#ff5c5c;
-    }
+.heat-red{
+    background:#ff4d4d;
+}
 
-    .warn{
-        color:#ffc857;
-    }
+.heat-yellow{
+    background:#ffcc00;
+}
 
-    .pulse{
-        animation:pulse 1.5s infinite;
-    }
+.heat-green{
+    background:#00ff99;
+}
 
-    @keyframes pulse{
-        0%{transform:scale(1);}
-        50%{transform:scale(1.05);}
-        100%{transform:scale(1);}
-    }
+.speaking{
+    animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+    0%{transform:scale(1);}
+    50%{transform:scale(1.03);}
+    100%{transform:scale(1);}
+}
+
 </style>
 </head>
 
-<body class="min-h-screen p-6">
+<body class="p-4">
 
 <div class="max-w-7xl mx-auto">
 
     <!-- HEADER -->
-    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6">
 
         <div>
-            <h1 class="text-5xl font-bold mb-2">
-                🚴 AeroBike AI
+            <h1 class="text-5xl font-bold">
+                🚴 AeroBike AI Ultimate
             </h1>
 
-            <p class="text-gray-400 text-lg">
-                Bike Fit Aérodynamique Intelligent
+            <p class="text-gray-400 mt-2">
+                Smart Aero Bike Fit System
             </p>
         </div>
 
-        <div class="mt-4 md:mt-0">
+        <div class="flex gap-3 mt-4 md:mt-0">
+
             <button
                 id="startBtn"
-                class="bg-cyan-500 hover:bg-cyan-400 px-6 py-3 rounded-xl font-bold pulse"
+                class="bg-cyan-500 hover:bg-cyan-400 px-6 py-3 rounded-xl font-bold"
             >
-                Démarrer Analyse
+                START ANALYSIS
             </button>
+
+            <button
+                id="compareBtn"
+                class="bg-purple-500 hover:bg-purple-400 px-6 py-3 rounded-xl font-bold"
+            >
+                SAVE POSITION
+            </button>
+
         </div>
+
     </div>
 
-    <!-- GRID -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- MAIN -->
+    <div class="grid grid-cols-1 xl:grid-cols-4 gap-4">
 
-        <!-- VIDEO -->
-        <div class="lg:col-span-2 glass rounded-3xl p-4">
+        <!-- CAMERA -->
+        <div class="xl:col-span-2 glass rounded-3xl p-4">
 
             <div class="relative">
 
@@ -106,11 +123,11 @@
                     id="video"
                     autoplay
                     playsinline
-                    class="w-full rounded-2xl"
+                    class="w-full"
                 ></video>
 
                 <canvas
-                    id="canvas"
+                    id="overlay"
                     class="absolute top-0 left-0 w-full h-full"
                 ></canvas>
 
@@ -118,139 +135,158 @@
 
         </div>
 
-        <!-- RIGHT PANEL -->
+        <!-- RIGHT -->
         <div class="space-y-4">
 
             <!-- SCORE -->
-            <div class="glass rounded-3xl p-6">
+            <div class="glass rounded-3xl p-5">
 
-                <h2 class="text-2xl font-bold mb-4">
+                <h2 class="text-xl font-bold mb-3">
                     Aero Score
                 </h2>
 
-                <div class="text-6xl font-bold text-cyan-400 mb-4" id="score">
+                <div
+                    id="score"
+                    class="text-6xl text-cyan-400 font-bold"
+                >
                     82
                 </div>
 
-                <div class="w-full bg-gray-800 rounded-full h-4">
+                <div class="bg-gray-800 h-4 rounded-full mt-4">
+
                     <div
                         id="scoreBar"
                         class="bg-cyan-400 h-4 rounded-full"
                         style="width:82%"
                     ></div>
+
                 </div>
 
             </div>
 
-            <!-- METRICS -->
-            <div class="glass rounded-3xl p-6 space-y-4">
+            <!-- COACH -->
+            <div class="glass rounded-3xl p-5">
 
-                <h2 class="text-2xl font-bold">
-                    Métriques Aero
-                </h2>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>CdA estimé</span>
-                        <span id="cda">0.245</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>Angle dos</span>
-                        <span id="backAngle">24°</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>Position tête</span>
-                        <span id="headPos" class="good">Optimale</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>Largeur coudes</span>
-                        <span id="elbowWidth">Bonne</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>Surface frontale</span>
-                        <span id="frontalArea">0.42m²</span>
-                    </div>
-                </div>
-
-                <div class="metric">
-                    <div class="flex justify-between">
-                        <span>Watts économisés</span>
-                        <span id="wattsSaved" class="good">+18W</span>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- IA COACH -->
-            <div class="glass rounded-3xl p-6">
-
-                <h2 class="text-2xl font-bold mb-4">
-                    Coach IA
+                <h2 class="text-xl font-bold mb-3">
+                    AI Coach
                 </h2>
 
                 <div
-                    id="coachMessage"
-                    class="text-xl text-cyan-300"
+                    id="coach"
+                    class="text-cyan-300 text-lg"
                 >
-                    Position très aérodynamique.
+                    Analyse en attente...
                 </div>
 
             </div>
 
             <!-- TURBULENCE -->
-            <div class="glass rounded-3xl p-6">
+            <div class="glass rounded-3xl p-5">
 
-                <h2 class="text-2xl font-bold mb-4">
-                    Analyse Turbulence
+                <h2 class="text-xl font-bold mb-4">
+                    Turbulence Heatmap
                 </h2>
 
-                <div class="space-y-3">
+                <div class="space-y-4">
 
                     <div>
-                        <div class="flex justify-between mb-1">
-                            <span>Épaules</span>
-                            <span>Faible</span>
+                        <div class="flex justify-between">
+                            <span>Head</span>
+                            <span id="headTurbulence">Low</span>
                         </div>
 
-                        <div class="bg-gray-800 h-3 rounded-full">
-                            <div class="bg-green-400 h-3 rounded-full w-[25%]"></div>
+                        <div class="bg-gray-800 h-3 rounded-full mt-1">
+                            <div
+                                id="headBar"
+                                class="heat-yellow h-3 rounded-full"
+                                style="width:40%"
+                            ></div>
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex justify-between mb-1">
-                            <span>Tête</span>
-                            <span>Moyenne</span>
+                        <div class="flex justify-between">
+                            <span>Shoulders</span>
+                            <span id="shoulderTurbulence">Medium</span>
                         </div>
 
-                        <div class="bg-gray-800 h-3 rounded-full">
-                            <div class="bg-yellow-400 h-3 rounded-full w-[45%]"></div>
+                        <div class="bg-gray-800 h-3 rounded-full mt-1">
+                            <div
+                                id="shoulderBar"
+                                class="heat-red h-3 rounded-full"
+                                style="width:70%"
+                            ></div>
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex justify-between mb-1">
-                            <span>Genoux</span>
-                            <span>Élevée</span>
+                        <div class="flex justify-between">
+                            <span>Knees</span>
+                            <span id="kneeTurbulence">High</span>
                         </div>
 
-                        <div class="bg-gray-800 h-3 rounded-full">
-                            <div class="bg-red-500 h-3 rounded-full w-[70%]"></div>
+                        <div class="bg-gray-800 h-3 rounded-full mt-1">
+                            <div
+                                id="kneeBar"
+                                class="heat-red h-3 rounded-full"
+                                style="width:80%"
+                            ></div>
                         </div>
                     </div>
 
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- METRICS -->
+        <div class="space-y-4">
+
+            <div class="glass rounded-3xl p-5 space-y-4">
+
+                <h2 class="text-xl font-bold">
+                    Live Metrics
+                </h2>
+
+                <div class="metricCard flex justify-between">
+                    <span>CdA</span>
+                    <span id="cda">0.245</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Back Angle</span>
+                    <span id="backAngle">24°</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Head Position</span>
+                    <span id="headPosition">Optimal</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Elbows</span>
+                    <span id="elbows">Wide</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Frontal Area</span>
+                    <span id="frontalArea">0.42m²</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Watts Saved</span>
+                    <span id="wattsSaved">+18W</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>Speed Gain</span>
+                    <span id="speedGain">+0.9km/h</span>
+                </div>
+
+                <div class="metricCard flex justify-between">
+                    <span>40km Gain</span>
+                    <span id="timeGain">-52 sec</span>
                 </div>
 
             </div>
@@ -259,57 +295,42 @@
 
     </div>
 
-    <!-- BOTTOM -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+    <!-- CHARTS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
 
-        <!-- POWER -->
-        <div class="glass rounded-3xl p-6">
+        <div class="glass rounded-3xl p-5">
 
-            <h2 class="text-2xl font-bold mb-4">
-                Puissance Aéro
+            <h2 class="text-xl font-bold mb-4">
+                Aero Stability
             </h2>
 
-            <div class="text-5xl font-bold text-cyan-400 mb-4" id="powerAero">
-                312W
-            </div>
-
-            <p class="text-gray-400">
-                Puissance nécessaire pour maintenir 45 km/h.
-            </p>
+            <canvas id="stabilityChart"></canvas>
 
         </div>
 
-        <!-- TIME GAIN -->
-        <div class="glass rounded-3xl p-6">
+        <div class="glass rounded-3xl p-5">
 
-            <h2 class="text-2xl font-bold mb-4">
-                Gain Estimé
+            <h2 class="text-xl font-bold mb-4">
+                CdA Evolution
             </h2>
 
-            <div class="text-5xl font-bold text-green-400 mb-4">
-                -52 sec
-            </div>
-
-            <p class="text-gray-400">
-                Sur un contre-la-montre de 40 km.
-            </p>
+            <canvas id="cdaChart"></canvas>
 
         </div>
 
-        <!-- RECOMMENDATION -->
-        <div class="glass rounded-3xl p-6">
+    </div>
 
-            <h2 class="text-2xl font-bold mb-4">
-                Recommandation
-            </h2>
+    <!-- RECOMMENDATIONS -->
+    <div class="glass rounded-3xl p-6 mt-4">
 
-            <div class="space-y-2 text-gray-300">
+        <h2 class="text-2xl font-bold mb-4">
+            Smart Recommendations
+        </h2>
 
-                <p>✔ Rentrer les coudes de 2 cm</p>
-                <p>✔ Baisser légèrement la tête</p>
-                <p>✔ Réduire oscillation des genoux</p>
-
-            </div>
+        <div
+            id="recommendations"
+            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+        >
 
         </div>
 
@@ -320,19 +341,61 @@
 <script>
 
 const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const overlay = document.getElementById("overlay");
+const ctx = overlay.getContext("2d");
 
 let pose;
+let savedPosition = null;
 
-async function initCamera(){
+const stabilityData = [];
+const cdaData = [];
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-        video:{
-            width:1280,
-            height:720
-        }
+const recommendations = [
+    "Baisser le cockpit de 10mm",
+    "Rapprocher les coudes",
+    "Baisser légèrement la tête",
+    "Réduire oscillation genoux",
+    "Avancer selle de 5mm",
+    "Améliorer stabilité bassin"
+];
+
+function createRecommendationCards(){
+
+    const container =
+        document.getElementById("recommendations");
+
+    container.innerHTML = "";
+
+    recommendations.forEach(r=>{
+
+        const div = document.createElement("div");
+
+        div.className =
+            "glass rounded-2xl p-4";
+
+        div.innerHTML = `
+            <div class="text-lg font-bold text-cyan-300">
+                ${r}
+            </div>
+        `;
+
+        container.appendChild(div);
+
     });
+
+}
+
+createRecommendationCards();
+
+async function setupCamera(){
+
+    const stream =
+        await navigator.mediaDevices.getUserMedia({
+            video:{
+                width:1280,
+                height:720
+            }
+        });
 
     video.srcObject = stream;
 
@@ -344,7 +407,35 @@ async function initCamera(){
 
 }
 
-function calculateAngle(a,b,c){
+function drawPoint(x,y,color="cyan"){
+
+    ctx.beginPath();
+
+    ctx.arc(x,y,6,0,2*Math.PI);
+
+    ctx.fillStyle = color;
+
+    ctx.fill();
+
+}
+
+function drawLine(a,b,color="cyan"){
+
+    ctx.beginPath();
+
+    ctx.moveTo(a.x,a.y);
+
+    ctx.lineTo(b.x,b.y);
+
+    ctx.strokeStyle = color;
+
+    ctx.lineWidth = 3;
+
+    ctx.stroke();
+
+}
+
+function angle(a,b,c){
 
     const ab = {
         x:a.x-b.x,
@@ -356,173 +447,384 @@ function calculateAngle(a,b,c){
         y:c.y-b.y
     };
 
-    const dot = (ab.x*cb.x)+(ab.y*cb.y);
+    const dot =
+        ab.x*cb.x + ab.y*cb.y;
 
-    const magAB = Math.sqrt(ab.x**2 + ab.y**2);
-    const magCB = Math.sqrt(cb.x**2 + cb.y**2);
+    const magAB =
+        Math.sqrt(ab.x**2 + ab.y**2);
 
-    const angle = Math.acos(dot/(magAB*magCB));
+    const magCB =
+        Math.sqrt(cb.x**2 + cb.y**2);
 
-    return angle * 180 / Math.PI;
+    return Math.acos(dot/(magAB*magCB))
+        *180/Math.PI;
 
 }
 
-function updateMetrics(backAngle){
+function estimateCdA(backAngle,elbowWidth,headHeight){
 
-    // CdA estimation simplifiée
-    let cda = 0.35 - (backAngle * 0.004);
+    let cda = 0.33;
 
-    cda = Math.max(0.18, Math.min(0.40, cda));
+    cda -= (35-backAngle)*0.003;
 
-    // Score aero
-    let score = Math.round((0.40 - cda) * 500);
+    cda -= (0.2-elbowWidth)*0.08;
 
-    score = Math.max(0, Math.min(100, score));
+    cda += headHeight*0.02;
 
-    // Watts gain estimation
-    let watts = Math.round((0.32 - cda) * 250);
+    return Math.max(0.18,
+        Math.min(0.40,cda));
 
-    document.getElementById("cda").innerText = cda.toFixed(3);
-    document.getElementById("score").innerText = score;
-    document.getElementById("scoreBar").style.width = score + "%";
-    document.getElementById("backAngle").innerText =
-        Math.round(backAngle) + "°";
+}
 
-    document.getElementById("wattsSaved").innerText =
-        "+" + watts + "W";
+function aeroPower(cda,speed){
 
-    // Coach IA
-    let msg = "";
+    const rho = 1.225;
 
-    if(backAngle > 35){
-        msg = "⚠ Descends davantage le torse.";
+    const area = 1;
+
+    return 0.5*rho*cda*area*
+        Math.pow(speed/3.6,3);
+
+}
+
+function speak(text){
+
+    const utter =
+        new SpeechSynthesisUtterance(text);
+
+    utter.lang = "fr-FR";
+
+    speechSynthesis.speak(utter);
+
+}
+
+function updateCharts(cda,score){
+
+    stabilityData.push(score);
+    cdaData.push(cda);
+
+    if(stabilityData.length > 30){
+        stabilityData.shift();
+        cdaData.shift();
     }
-    else if(backAngle > 28){
-        msg = "✔ Bonne position mais encore optimisable.";
+
+    stabilityChart.update();
+    cdaChart.update();
+
+}
+
+function updateUI(metrics){
+
+    document.getElementById("cda")
+        .innerText = metrics.cda.toFixed(3);
+
+    document.getElementById("backAngle")
+        .innerText =
+        Math.round(metrics.backAngle)+"°";
+
+    document.getElementById("frontalArea")
+        .innerText =
+        metrics.frontalArea.toFixed(2)+"m²";
+
+    document.getElementById("wattsSaved")
+        .innerText =
+        "+"+metrics.wattsSaved+"W";
+
+    document.getElementById("speedGain")
+        .innerText =
+        "+"+metrics.speedGain.toFixed(1)+"km/h";
+
+    document.getElementById("timeGain")
+        .innerText =
+        "-"+metrics.timeGain+" sec";
+
+    document.getElementById("score")
+        .innerText = metrics.score;
+
+    document.getElementById("scoreBar")
+        .style.width =
+        metrics.score+"%";
+
+    // Coach
+    let coach = "";
+
+    if(metrics.backAngle > 35){
+
+        coach =
+            "⚠ Descends davantage le torse";
+
+    }
+    else if(metrics.headHigh){
+
+        coach =
+            "⚠ Baisse légèrement la tête";
+
+    }
+    else if(metrics.elbowsWide){
+
+        coach =
+            "⚠ Rentre les coudes";
+
     }
     else{
-        msg = "🔥 Position très aérodynamique.";
-    }
 
-    document.getElementById("coachMessage").innerText = msg;
-
-}
-
-function drawLandmarks(landmarks){
-
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    for(const landmark of landmarks){
-
-        ctx.beginPath();
-
-        ctx.arc(
-            landmark.x * canvas.width,
-            landmark.y * canvas.height,
-            5,
-            0,
-            2 * Math.PI
-        );
-
-        ctx.fillStyle = "#00ffff";
-        ctx.fill();
+        coach =
+            "🔥 Position aérodynamique optimale";
 
     }
+
+    document.getElementById("coach")
+        .innerText = coach;
 
 }
 
 async function setupPose(){
 
-    pose = new Pose({
+    pose = new Pose.Pose({
         locateFile:(file)=>{
             return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
         }
     });
 
     pose.setOptions({
-        modelComplexity:1,
+        modelComplexity:2,
         smoothLandmarks:true,
-        enableSegmentation:false,
-        minDetectionConfidence:0.5,
-        minTrackingConfidence:0.5
+        minDetectionConfidence:0.7,
+        minTrackingConfidence:0.7
     });
 
     pose.onResults(results=>{
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+
+        ctx.clearRect(
+            0,0,
+            overlay.width,
+            overlay.height
+        );
 
         ctx.drawImage(
             results.image,
-            0,
-            0,
-            canvas.width,
-            canvas.height
+            0,0,
+            overlay.width,
+            overlay.height
         );
 
         if(results.poseLandmarks){
 
-            drawLandmarks(results.poseLandmarks);
+            const lm =
+                results.poseLandmarks;
 
-            const shoulder = results.poseLandmarks[11];
-            const hip = results.poseLandmarks[23];
-            const knee = results.poseLandmarks[25];
+            // Points
+            const shoulder = {
+                x:lm[11].x*overlay.width,
+                y:lm[11].y*overlay.height
+            };
 
-            const angle = calculateAngle(
-                shoulder,
-                hip,
-                knee
+            const hip = {
+                x:lm[23].x*overlay.width,
+                y:lm[23].y*overlay.height
+            };
+
+            const knee = {
+                x:lm[25].x*overlay.width,
+                y:lm[25].y*overlay.height
+            };
+
+            const head = {
+                x:lm[0].x*overlay.width,
+                y:lm[0].y*overlay.height
+            };
+
+            const elbowL = lm[13];
+            const elbowR = lm[14];
+
+            drawLine(shoulder,hip);
+            drawLine(hip,knee);
+
+            drawPoint(
+                shoulder.x,
+                shoulder.y
             );
 
-            updateMetrics(angle);
+            drawPoint(
+                hip.x,
+                hip.y
+            );
+
+            drawPoint(
+                knee.x,
+                knee.y
+            );
+
+            drawPoint(
+                head.x,
+                head.y,
+                "red"
+            );
+
+            const backAngle =
+                angle(shoulder,hip,knee);
+
+            const elbowWidth =
+                Math.abs(elbowL.x - elbowR.x);
+
+            const headHeight =
+                lm[0].y;
+
+            const cda =
+                estimateCdA(
+                    backAngle,
+                    elbowWidth,
+                    headHeight
+                );
+
+            const frontalArea =
+                0.45 - ((35-backAngle)*0.004);
+
+            const watts =
+                Math.round(
+                    (0.32-cda)*220
+                );
+
+            const speedGain =
+                (0.32-cda)*12;
+
+            const timeGain =
+                Math.round(
+                    speedGain*60
+                );
+
+            const score =
+                Math.round(
+                    (0.40-cda)*500
+                );
+
+            const metrics = {
+
+                cda,
+
+                backAngle,
+
+                frontalArea,
+
+                wattsSaved:watts,
+
+                speedGain,
+
+                timeGain,
+
+                score,
+
+                headHigh:
+                    headHeight < 0.25,
+
+                elbowsWide:
+                    elbowWidth > 0.18
+
+            };
+
+            updateUI(metrics);
+
+            updateCharts(cda,score);
 
         }
 
     });
 
-    const camera = new Camera(video,{
-        onFrame:async()=>{
-            await pose.send({image:video});
-        },
-        width:1280,
-        height:720
-    });
+    const camera =
+        new Camera(video,{
+
+            onFrame:async()=>{
+
+                await pose.send({
+                    image:video
+                });
+
+            },
+
+            width:1280,
+            height:720
+
+        });
 
     camera.start();
 
 }
 
-document.getElementById("startBtn")
-.addEventListener("click", async()=>{
+const stabilityChart =
+new Chart(
+    document.getElementById("stabilityChart"),
+{
+    type:"line",
+    data:{
+        labels:Array(30).fill(""),
+        datasets:[{
+            label:"Stability",
+            data:stabilityData
+        }]
+    }
+});
 
-    await initCamera();
+const cdaChart =
+new Chart(
+    document.getElementById("cdaChart"),
+{
+    type:"line",
+    data:{
+        labels:Array(30).fill(""),
+        datasets:[{
+            label:"CdA",
+            data:cdaData
+        }]
+    }
+});
+
+document
+.getElementById("startBtn")
+.addEventListener("click",
+async()=>{
+
+    await setupCamera();
 
     await setupPose();
 
-    // Voice coach
-    const synth = window.speechSynthesis;
+    speak("Analyse aérodynamique démarrée");
 
     setInterval(()=>{
 
-        const messages = [
-            "Baisse légèrement la tête",
-            "Rentre les coudes",
-            "Position optimale atteinte",
-            "Ton dos remonte",
-            "Excellent aérodynamisme"
-        ];
+        const coach =
+            document.getElementById("coach")
+            .innerText;
 
-        const random =
-            messages[Math.floor(Math.random()*messages.length)];
+        speak(coach);
 
-        const utter =
-            new SpeechSynthesisUtterance(random);
+    },20000);
 
-        utter.lang = "fr-FR";
+});
 
-        synth.speak(utter);
+document
+.getElementById("compareBtn")
+.addEventListener("click",()=>{
 
-    },15000);
+    savedPosition = {
+
+        cda:
+        document.getElementById("cda")
+            .innerText,
+
+        score:
+        document.getElementById("score")
+            .innerText
+
+    };
+
+    alert(
+        "Position sauvegardée\n"+
+        "CdA: "+savedPosition.cda+
+        "\nScore: "+savedPosition.score
+    );
 
 });
 
