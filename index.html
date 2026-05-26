@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+<title>AeroBike AI - Bike Fit Aérodynamique Intelligent</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- TensorFlow -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.18.0"></script>
+
+<!-- MediaPipe Pose -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<style>
+    body{
+        background:#050816;
+        color:white;
+        overflow-x:hidden;
+        font-family:Arial, Helvetica, sans-serif;
+    }
+
+    .glass{
+        background:rgba(255,255,255,0.05);
+        backdrop-filter:blur(12px);
+        border:1px solid rgba(255,255,255,0.08);
+    }
+
+    canvas{
+        border-radius:16px;
+    }
+
+    .metric{
+        transition:0.3s;
+    }
+
+    .metric:hover{
+        transform:translateY(-4px);
+    }
+
+    .good{
+        color:#00ff99;
+    }
+
+    .bad{
+        color:#ff5c5c;
+    }
+
+    .warn{
+        color:#ffc857;
+    }
+
+    .pulse{
+        animation:pulse 1.5s infinite;
+    }
+
+    @keyframes pulse{
+        0%{transform:scale(1);}
+        50%{transform:scale(1.05);}
+        100%{transform:scale(1);}
+    }
+</style>
+</head>
+
+<body class="min-h-screen p-6">
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8">
+
+        <div>
+            <h1 class="text-5xl font-bold mb-2">
+                🚴 AeroBike AI
+            </h1>
+
+            <p class="text-gray-400 text-lg">
+                Bike Fit Aérodynamique Intelligent
+            </p>
+        </div>
+
+        <div class="mt-4 md:mt-0">
+            <button
+                id="startBtn"
+                class="bg-cyan-500 hover:bg-cyan-400 px-6 py-3 rounded-xl font-bold pulse"
+            >
+                Démarrer Analyse
+            </button>
+        </div>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- VIDEO -->
+        <div class="lg:col-span-2 glass rounded-3xl p-4">
+
+            <div class="relative">
+
+                <video
+                    id="video"
+                    autoplay
+                    playsinline
+                    class="w-full rounded-2xl"
+                ></video>
+
+                <canvas
+                    id="canvas"
+                    class="absolute top-0 left-0 w-full h-full"
+                ></canvas>
+
+            </div>
+
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="space-y-4">
+
+            <!-- SCORE -->
+            <div class="glass rounded-3xl p-6">
+
+                <h2 class="text-2xl font-bold mb-4">
+                    Aero Score
+                </h2>
+
+                <div class="text-6xl font-bold text-cyan-400 mb-4" id="score">
+                    82
+                </div>
+
+                <div class="w-full bg-gray-800 rounded-full h-4">
+                    <div
+                        id="scoreBar"
+                        class="bg-cyan-400 h-4 rounded-full"
+                        style="width:82%"
+                    ></div>
+                </div>
+
+            </div>
+
+            <!-- METRICS -->
+            <div class="glass rounded-3xl p-6 space-y-4">
+
+                <h2 class="text-2xl font-bold">
+                    Métriques Aero
+                </h2>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>CdA estimé</span>
+                        <span id="cda">0.245</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>Angle dos</span>
+                        <span id="backAngle">24°</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>Position tête</span>
+                        <span id="headPos" class="good">Optimale</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>Largeur coudes</span>
+                        <span id="elbowWidth">Bonne</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>Surface frontale</span>
+                        <span id="frontalArea">0.42m²</span>
+                    </div>
+                </div>
+
+                <div class="metric">
+                    <div class="flex justify-between">
+                        <span>Watts économisés</span>
+                        <span id="wattsSaved" class="good">+18W</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- IA COACH -->
+            <div class="glass rounded-3xl p-6">
+
+                <h2 class="text-2xl font-bold mb-4">
+                    Coach IA
+                </h2>
+
+                <div
+                    id="coachMessage"
+                    class="text-xl text-cyan-300"
+                >
+                    Position très aérodynamique.
+                </div>
+
+            </div>
+
+            <!-- TURBULENCE -->
+            <div class="glass rounded-3xl p-6">
+
+                <h2 class="text-2xl font-bold mb-4">
+                    Analyse Turbulence
+                </h2>
+
+                <div class="space-y-3">
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Épaules</span>
+                            <span>Faible</span>
+                        </div>
+
+                        <div class="bg-gray-800 h-3 rounded-full">
+                            <div class="bg-green-400 h-3 rounded-full w-[25%]"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Tête</span>
+                            <span>Moyenne</span>
+                        </div>
+
+                        <div class="bg-gray-800 h-3 rounded-full">
+                            <div class="bg-yellow-400 h-3 rounded-full w-[45%]"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span>Genoux</span>
+                            <span>Élevée</span>
+                        </div>
+
+                        <div class="bg-gray-800 h-3 rounded-full">
+                            <div class="bg-red-500 h-3 rounded-full w-[70%]"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- BOTTOM -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+
+        <!-- POWER -->
+        <div class="glass rounded-3xl p-6">
+
+            <h2 class="text-2xl font-bold mb-4">
+                Puissance Aéro
+            </h2>
+
+            <div class="text-5xl font-bold text-cyan-400 mb-4" id="powerAero">
+                312W
+            </div>
+
+            <p class="text-gray-400">
+                Puissance nécessaire pour maintenir 45 km/h.
+            </p>
+
+        </div>
+
+        <!-- TIME GAIN -->
+        <div class="glass rounded-3xl p-6">
+
+            <h2 class="text-2xl font-bold mb-4">
+                Gain Estimé
+            </h2>
+
+            <div class="text-5xl font-bold text-green-400 mb-4">
+                -52 sec
+            </div>
+
+            <p class="text-gray-400">
+                Sur un contre-la-montre de 40 km.
+            </p>
+
+        </div>
+
+        <!-- RECOMMENDATION -->
+        <div class="glass rounded-3xl p-6">
+
+            <h2 class="text-2xl font-bold mb-4">
+                Recommandation
+            </h2>
+
+            <div class="space-y-2 text-gray-300">
+
+                <p>✔ Rentrer les coudes de 2 cm</p>
+                <p>✔ Baisser légèrement la tête</p>
+                <p>✔ Réduire oscillation des genoux</p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let pose;
+
+async function initCamera(){
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+        video:{
+            width:1280,
+            height:720
+        }
+    });
+
+    video.srcObject = stream;
+
+    return new Promise(resolve=>{
+        video.onloadedmetadata = ()=>{
+            resolve(video);
+        };
+    });
+
+}
+
+function calculateAngle(a,b,c){
+
+    const ab = {
+        x:a.x-b.x,
+        y:a.y-b.y
+    };
+
+    const cb = {
+        x:c.x-b.x,
+        y:c.y-b.y
+    };
+
+    const dot = (ab.x*cb.x)+(ab.y*cb.y);
+
+    const magAB = Math.sqrt(ab.x**2 + ab.y**2);
+    const magCB = Math.sqrt(cb.x**2 + cb.y**2);
+
+    const angle = Math.acos(dot/(magAB*magCB));
+
+    return angle * 180 / Math.PI;
+
+}
+
+function updateMetrics(backAngle){
+
+    // CdA estimation simplifiée
+    let cda = 0.35 - (backAngle * 0.004);
+
+    cda = Math.max(0.18, Math.min(0.40, cda));
+
+    // Score aero
+    let score = Math.round((0.40 - cda) * 500);
+
+    score = Math.max(0, Math.min(100, score));
+
+    // Watts gain estimation
+    let watts = Math.round((0.32 - cda) * 250);
+
+    document.getElementById("cda").innerText = cda.toFixed(3);
+    document.getElementById("score").innerText = score;
+    document.getElementById("scoreBar").style.width = score + "%";
+    document.getElementById("backAngle").innerText =
+        Math.round(backAngle) + "°";
+
+    document.getElementById("wattsSaved").innerText =
+        "+" + watts + "W";
+
+    // Coach IA
+    let msg = "";
+
+    if(backAngle > 35){
+        msg = "⚠ Descends davantage le torse.";
+    }
+    else if(backAngle > 28){
+        msg = "✔ Bonne position mais encore optimisable.";
+    }
+    else{
+        msg = "🔥 Position très aérodynamique.";
+    }
+
+    document.getElementById("coachMessage").innerText = msg;
+
+}
+
+function drawLandmarks(landmarks){
+
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    for(const landmark of landmarks){
+
+        ctx.beginPath();
+
+        ctx.arc(
+            landmark.x * canvas.width,
+            landmark.y * canvas.height,
+            5,
+            0,
+            2 * Math.PI
+        );
+
+        ctx.fillStyle = "#00ffff";
+        ctx.fill();
+
+    }
+
+}
+
+async function setupPose(){
+
+    pose = new Pose({
+        locateFile:(file)=>{
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
+        }
+    });
+
+    pose.setOptions({
+        modelComplexity:1,
+        smoothLandmarks:true,
+        enableSegmentation:false,
+        minDetectionConfidence:0.5,
+        minTrackingConfidence:0.5
+    });
+
+    pose.onResults(results=>{
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        ctx.drawImage(
+            results.image,
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+        if(results.poseLandmarks){
+
+            drawLandmarks(results.poseLandmarks);
+
+            const shoulder = results.poseLandmarks[11];
+            const hip = results.poseLandmarks[23];
+            const knee = results.poseLandmarks[25];
+
+            const angle = calculateAngle(
+                shoulder,
+                hip,
+                knee
+            );
+
+            updateMetrics(angle);
+
+        }
+
+    });
+
+    const camera = new Camera(video,{
+        onFrame:async()=>{
+            await pose.send({image:video});
+        },
+        width:1280,
+        height:720
+    });
+
+    camera.start();
+
+}
+
+document.getElementById("startBtn")
+.addEventListener("click", async()=>{
+
+    await initCamera();
+
+    await setupPose();
+
+    // Voice coach
+    const synth = window.speechSynthesis;
+
+    setInterval(()=>{
+
+        const messages = [
+            "Baisse légèrement la tête",
+            "Rentre les coudes",
+            "Position optimale atteinte",
+            "Ton dos remonte",
+            "Excellent aérodynamisme"
+        ];
+
+        const random =
+            messages[Math.floor(Math.random()*messages.length)];
+
+        const utter =
+            new SpeechSynthesisUtterance(random);
+
+        utter.lang = "fr-FR";
+
+        synth.speak(utter);
+
+    },15000);
+
+});
+
+</script>
+
+</body>
+</html>
