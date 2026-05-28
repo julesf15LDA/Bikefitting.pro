@@ -831,4 +831,20 @@ document
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body>
+    <div id="auth-overlay">
+  <div class="auth-box">
+    <h2>Connexion à AeroFit PRO</h2>
+    <p>Connectez-vous pour accéder à l'analyse aérodynamique en temps réel.</p>
+    
+    <input type="email" id="auth-email" placeholder="Votre adresse email" required>
+    <input type="password" id="auth-password" placeholder="Votre mot de passe" required>
+    
+    <div class="auth-buttons">
+      <button id="btn-login">Se connecter</button>
+      <button id="btn-signup" class="btn-secondary">Créer un compte</button>
+    </div>
+    
+    <p id="auth-error" style="color: #ff4a4a; margin-top: 10px; display: none;"></p>
+  </div>
+</div>
 </html>
